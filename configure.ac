@@ -670,6 +670,7 @@ AC_CONFIG_FILES([
     tests/data/Makefile
     tests/eds/Makefile
     tests/folks/Makefile
+    tests/dummy/Makefile
     tests/key-file/Makefile
     tests/libsocialweb/Makefile
     tests/telepathy/Makefile
