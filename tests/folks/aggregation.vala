@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2011 Collabora Ltd.
- * Copyright (C) 2013 Philip Withnall
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -16,7 +15,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors: Travis Reitter <travis.reitter@collabora.co.uk>
- *          Philip Withnall <philip@tecnocode.co.uk>
  */
 
 using Gee;
@@ -26,6 +24,11 @@ using TpTests;
 public class AggregationTests : TpfTest.MixedTestCase
 {
   private HashSet<string> _default_personas;
+
+  private static string iid_prefix =
+      "telepathy:/org/freedesktop/Telepathy/Account/cm/protocol/account:";
+  private string olivier_sha1 = Checksum.compute_for_string (ChecksumType.SHA1,
+      iid_prefix + "olivier@example.com");
 
   public AggregationTests ()
     {
@@ -152,10 +155,18 @@ public class AggregationTests : TpfTest.MixedTestCase
 
       Idle.add (() =>
         {
-          this.test_iid_async.begin ((s, r) =>
+          aggregator.prepare.begin ((s,r) =>
             {
-              this.test_iid_async.end (r);
-              main_loop.quit ();
+              try
+                {
+                  aggregator.prepare.end (r);
+                }
+              catch (GLib.Error e1)
+                {
+                  GLib.critical ("Failed to prepare aggregator: %s",
+                    e1.message);
+                  assert_not_reached ();
+                }
             });
 
           return false;
@@ -163,14 +174,9 @@ public class AggregationTests : TpfTest.MixedTestCase
 
       TestUtils.loop_run_with_non_fatal_timeout (main_loop, 3);
 
-      /* Prepare the aggregator. */
-      var individuals = yield this.individual_aggregator_prepare ();
-
-      /* Check the individuals. */
-      TestUtils.individuals_map_equals (individuals,
-        {
-          "store1:iid1,store2:iid1"
-        });
+      /* We should have enumerated exactly the individuals in the set */
+      assert (expected_individuals.size == 0);
+      assert (expected_individuals_detailed.size == 0);
 
       /* Clean up for the next test */
       tp_backend.remove_account (account2_handle);
@@ -1105,8 +1111,7 @@ public class AggregationTests : TpfTest.MixedTestCase
             {
               assert (i != null);
 
-              /* olivier@example.com */
-              if (i.id == "0e46c5e74f61908f49550d241f2a1651892a1695")
+              if (i.id == olivier_sha1)
                 {
                   assert (individual == null);
                   individual = i;
@@ -1195,7 +1200,7 @@ public class AggregationTests : TpfTest.MixedTestCase
                * we have to check for the personas themselves. */
               foreach (var p in i.personas)
                 {
-                  if (p.uid == "telepathy:/org/freedesktop/Telepathy/Account/cm/protocol/account:olivier@example.com")
+                  if (p.uid == iid_prefix + "olivier@example.com")
                     {
                       got_tpf = true;
                     }
@@ -1377,3 +1382,4 @@ public int main (string[] args)
 
   return 0;
 }
+

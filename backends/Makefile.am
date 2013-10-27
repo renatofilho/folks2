@@ -30,6 +30,7 @@ DIST_SUBDIRS = \
 	ofono \
 	telepathy \
 	tracker \
+	dummy \
 	$(NULL)
 
 -include $(top_srcdir)/git.mk
